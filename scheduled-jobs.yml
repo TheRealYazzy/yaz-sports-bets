@@ -1,0 +1,68 @@
+name: Yaz Sports Bets - Scheduled Jobs
+
+on:
+  schedule:
+    # Hourly edge detection - every hour
+    - cron: '0 * * * *'
+    # Daily analysis - 8am, 2pm, 8pm UTC
+    - cron: '0 8,14,20 * * *'
+  workflow_dispatch:
+
+jobs:
+  hourly-edge-detection:
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Run hourly edge detection
+        run: node backend/jobs/hourly.js
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+      
+      - name: Notify on success
+        if: success()
+        run: echo "✅ Hourly job completed successfully"
+      
+      - name: Notify on failure
+        if: failure()
+        run: echo "❌ Hourly job failed"
+
+  daily-analysis:
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 8,14,20 * * *' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Run daily analysis
+        run: node backend/jobs/daily.js
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+      
+      - name: Notify on success
+        if: success()
+        run: echo "✅ Daily job completed successfully"
+      
+      - name: Notify on failure
+        if: failure()
+        run: echo "❌ Daily job failed"
